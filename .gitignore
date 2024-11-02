@@ -1,4 +1,4 @@
 .git
-.idea
-venv
 .venv
+venv
+.idea
