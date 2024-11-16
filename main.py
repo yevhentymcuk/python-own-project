@@ -1,13 +1,8 @@
-from crypt import methods
-from email.policy import default
-
-from flask import Flask, request, session, redirect, render_template
+from flask import Flask, request, session, redirect, render_template, abort
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash
 import os
 from datetime import datetime
-
-from sqlalchemy.testing.suite.test_reflection import users
 
 SESSION_USER_ID = 'user_id'
 
@@ -15,11 +10,11 @@ app = Flask(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///" + os.path.join(basedir, 'school.sqlite')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'dI4DXyeF1MvLyRyFayQuWm198f_fed0rQV4S_nAOgmo'
+app.config['SECRET_KEY'] = 'kiuVkyaxU14Gb1b5REoq2D0udY0b7rxvtnd_0ByyE74'
 db = SQLAlchemy(app)
 
 
-# === MODELS =====================================================================================
+# === MODELS ==================================================================
 class User(db.Model):
     __tablename__ = 'User'
     id = db.Column(db.Integer, primary_key=True)
@@ -44,10 +39,13 @@ class News(db.Model):
     created_on = db.Column(db.Date(), default=datetime.utcnow())
     deleted = db.Column(db.Boolean, default=False)
 
+
+# створюємо базу даних
 # with app.app_context():
 #     db.create_all()
 
-# === ROUTES ===================================================================================
+
+# === ROUTES ==================================================================
 
 @app.route('/')
 def index():
@@ -61,30 +59,33 @@ def news():
 
     for item in list_news:
         if len(item.text) > 200:
-            item.text = item.text[:200] + '...'
+            item.text = item.text[:200] + ' ...'
 
-    return render_template('news.html', list_news=list_news)
-
-
-@app.route('/contact')
-def contact():
-    return render_template('contact.html')
+    return render_template('news.html', list_news=list_news,
+                           user_id=session.get(SESSION_USER_ID))
 
 
-@app.route('/courses')
-def courses():
-    return render_template('courses.html')
+@app.route('/news/<int:news_id>')
+def news_detail(news_id):
+    news_item = News.query.filter_by(id=news_id).first()
+
+    if news_item:
+        news_item.text = news_item.text.replace('\n', '<br>')
+        return render_template('news_detail.html', news_item=news_item)
+
+    abort(404)
 
 
-@app.route('/pricing')
-def pricing():
-    return render_template('pricing.html')
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
 
 # --- ADMIN ---
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    massage = ''
+    message = ''
 
     if request.method == 'POST':
         email = request.form['email']
@@ -93,20 +94,55 @@ def login():
         user = User.query.filter_by(email=email).first()
 
         if not user:
-            massage = 'Неправильний Email!'
+            message = 'Неправильний Email!'
         else:
             if user.check_password(password):
                 session[SESSION_USER_ID] = user.id
                 return redirect('/')
 
-            massage = 'Неправильний пароль!'
+            message = 'Неправильний пароль'
 
-    return render_template('login.html', massage=massage)
+    return render_template('login.html', message=message)
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/add_news')
+def ad_news():
+    if SESSION_USER_ID not in session:
+        redirect('/login')
+
+    if request.method == 'POST':
+        name = request.form['name']
+        id = request.form['id']
+        image = request.form['image']
+        text = request.form['text']
+
+        if id:
+            row = News.query.filter_by(id=id).first()
+            row.name = name
+            row.text = text
+            row.image= image
+        else:
+            row = News(nam=name, text=text, image=image)
+
+        db.session.add(row)
+        db.session.commit()
+
+        redirect('/')
+
+    return render_template('add_edit_news.html',
+                           message='Додати новину',
+                           id=0, name='', text='', image='')
+
+
+@app.route('/edit_news')
+def edit_news():
+    pass
+
+
+@app.route('/logout')
 def logout():
     session.pop(SESSION_USER_ID, None)
     return redirect('/')
+
 
 if __name__ == '__main__':
     app.run(debug=True)

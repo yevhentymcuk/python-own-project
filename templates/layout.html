@@ -37,13 +37,13 @@
                     <div class="navbar-collapse collapse ">
                         <ul class="nav navbar-nav">
                             <li class="active"><a href="/">Домашня</a></li>
-                            <li><a href="/news">новини</a></li>
+                            <li><a href="/news">Новини</a></li>
 
                             {% if session %}
-                            <li><a href="/add news">додати новину</a></li>
-                            <li><a href="/logout">вихід</a></li>
+                            <li><a href="/add_news">Додати новину</a></li>
+                            <li><a href="/logout">Вихід <i class="fa fa-sign-out" aria-hidden="true"></i></a></li>
                             {% else %}
-                            <li><a href="/login">вхід</a></li>
+                            <li><a href="/login">Вхід<i class="fa fa-sign-in" aria-hidden="true"></i></a></li>
                             {% endif %}
                             <!--
                             <li><a href="/about">Про нас</a></li>
